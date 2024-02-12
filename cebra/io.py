@@ -27,6 +27,12 @@ import sklearn.decomposition
 import torch
 from torch import nn
 
+try:
+    import torch_xla.core.xla_model as xm
+    _HAS_TORCH_XLA = True
+except ImportError:
+    _HAS_TORCH_XLA = False
+
 if torch.cuda.is_available():
     _device = "cuda"
 else:
@@ -85,13 +91,15 @@ class HasDevice:
             return
         if not isinstance(device, str):
             device = device.type
-        if device not in ("cpu", "cuda", "mps"):
+        if device not in ("cpu", "cuda", "mps", "xla"):
             if device.startswith("cuda"):
                 _, id_ = device.split(":")
                 if int(id_) >= torch.cuda.device_count():
                     raise ValueError(device)
             else:
                 raise ValueError(device)
+        elif device == "xla" and not _HAS_TORCH_XLA:
+            raise ValueError("TPU support requires torch-xla, but it's not installed.")
         self._device = device
 
     @property
