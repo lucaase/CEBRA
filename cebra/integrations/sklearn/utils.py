@@ -28,6 +28,12 @@ import torch
 import cebra.helper
 
 
+try:
+    import torch_xla.core.xla_model as xm
+    _HAS_TORCH_XLA = True
+except ImportError:
+    _HAS_TORCH_XLA = False
+
 def update_old_param(old: dict, new: dict, kwargs: dict, default) -> tuple:
     """Handle deprecated arguments of a function until they are replaced.
 
@@ -128,14 +134,18 @@ def check_device(device: str) -> str:
     Returns:
         Either cuda, cuda:device_id, mps, or cpu depending on {device} and availability in the environment.
     """
-
+    global _HAS_TORCH_XLA
     if device == "cuda_if_available":
         if torch.cuda.is_available():
             return "cuda"
         elif cebra.helper._is_mps_availabe(torch):
             return "mps"
+
+        elif _HAS_TORCH_XLA and device == "xla":
+            return device
         else:
             return "cpu"
+        
     elif device.startswith("cuda:") and len(device) > 5:
         cuda_device_id = device[5:]
         if cuda_device_id.isdigit():
@@ -169,7 +179,7 @@ def check_device(device: str) -> str:
 
         return device
 
-    raise ValueError(f"Device needs to be cuda, cpu or mps, but got {device}.")
+    raise ValueError(f"Device needs to be cuda, cpu, xla or mps, but got {device}.")
 
 
 def check_fitted(model: "cebra.models.Model") -> bool:
