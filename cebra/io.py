@@ -91,15 +91,16 @@ class HasDevice:
             return
         if not isinstance(device, str):
             device = device.type
-        if device not in ("cpu", "cuda", "mps", "xla"):
+        if device not in ("cpu", "cuda", "mps") and not device.startswith("xla"):
             if device.startswith("cuda"):
                 _, id_ = device.split(":")
                 if int(id_) >= torch.cuda.device_count():
                     raise ValueError(device)
             else:
                 raise ValueError(device)
-        elif device == "xla" and not _HAS_TORCH_XLA:
-            raise ValueError("TPU support requires torch-xla, but it's not installed.")
+        elif device.startswith("xla"):
+            if not _HAS_TORCH_XLA:
+                raise ValueError("TPU support requires torch-xla, but it's not installed.")
         self._device = device
 
     @property
