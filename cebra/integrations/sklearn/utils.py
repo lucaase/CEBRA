@@ -126,6 +126,9 @@ def check_label_array(y: npt.NDArray, *, min_samples: int):
 
 
 def check_device(device: str) -> str:
+    if isinstance(device, torch.device):
+        device = device.type
+    
     if device == "cuda_if_available":
         if torch.cuda.is_available():
             return "cuda"
