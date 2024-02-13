@@ -165,6 +165,8 @@ def check_device(device: str) -> str:
         return "cuda:0"
     elif device == "cpu":
         return device
+    elif device.startswith("xla") and _HAS_TORCH_XLA:
+        return device
     elif device == "mps":
         if not torch.backends.mps.is_available():
             if not torch.backends.mps.is_built():
