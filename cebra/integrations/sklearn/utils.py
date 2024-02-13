@@ -135,17 +135,15 @@ def check_device(device: str) -> str:
         Either cuda, cuda:device_id, mps, or cpu depending on {device} and availability in the environment.
     """
     global _HAS_TORCH_XLA
-    if device == "cuda_if_available":
+    if _HAS_TORCH_XLA and (device == "xla" or device.startswith("xla:")):
+        return device
+    elif device == "cuda_if_available":
         if torch.cuda.is_available():
             return "cuda"
-        elif cebra.helper._is_mps_availabe(torch):
-            return "mps"
-
-        elif _HAS_TORCH_XLA and device == "xla":
-            return device
+        elif _HAS_TORCH_XLA:
+            return "xla"
         else:
             return "cpu"
-        
     elif device.startswith("cuda:") and len(device) > 5:
         cuda_device_id = device[5:]
         if cuda_device_id.isdigit():
@@ -154,34 +152,17 @@ def check_device(device: str) -> str:
             if device_id < device_count:
                 return f"cuda:{device_id}"
             else:
-                raise ValueError(
-                    f"CUDA device {device_id} is not available. Available device IDs are 0 to {device_count - 1}."
-                )
+                raise ValueError(f"CUDA device {device_id} is not available. Available device IDs are 0 to {device_count - 1}.")
         else:
-            raise ValueError(
-                f"Invalid CUDA device ID format. Please use 'cuda:device_id' where '{cuda_device_id}' is an integer."
-            )
+            raise ValueError(f"Invalid CUDA device ID format. Please use 'cuda:device_id' where '{cuda_device_id}' is an integer.")
     elif device == "cuda" and torch.cuda.is_available():
         return "cuda:0"
     elif device == "cpu":
         return device
-    elif device.startswith("xla") and _HAS_TORCH_XLA:
+    elif device == "mps" and torch.backends.mps.is_available():
         return device
-    elif device == "mps":
-        if not torch.backends.mps.is_available():
-            if not torch.backends.mps.is_built():
-                raise ValueError(
-                    "MPS not available because the current PyTorch install was not "
-                    "built with MPS enabled.")
-            else:
-                raise ValueError(
-                    "MPS not available because the current MacOS version is not 12.3+ "
-                    "and/or you do not have an MPS-enabled device on this machine."
-                )
-
-        return device
-
-    raise ValueError(f"Device needs to be cuda, cpu, xla or mps, but got {device}.")
+    else:
+        raise ValueError(f"Device needs to be cuda, cpu, xla or mps, but got {device}.")
 
 
 def check_fitted(model: "cebra.models.Model") -> bool:
